@@ -1,0 +1,8 @@
+---
+- name: Provision Raspberry Pi
+  hosts: pi
+  become: true
+  roles:
+    - base
+    - k3s
+    - wireguard

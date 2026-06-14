@@ -1,0 +1,44 @@
+---
+- name: Install age
+  ansible.builtin.apt:
+    name: age
+    state: present
+
+- name: Create SOPS key directory
+  ansible.builtin.file:
+    path: /etc/sops/age
+    state: directory
+    mode: "0700"
+
+- name: Check if age key already exists
+  ansible.builtin.stat:
+    path: /etc/sops/age/keys.txt
+  register: age_key
+
+- name: Generate age keypair
+  when: not age_key.stat.exists
+  ansible.builtin.shell: age-keygen -o /etc/sops/age/keys.txt 2>&1
+  register: age_keygen_output
+
+- name: Display age public key
+  when: age_keygen_output is defined and age_keygen_output.stdout is defined
+  ansible.builtin.debug:
+    msg: >
+      Age public key generated. Add this to your .sops.yaml:
+      {{ age_keygen_output.stdout }}
+
+- name: Check if sops-age secret exists in flux-system
+  ansible.builtin.command: k3s kubectl get secret sops-age -n flux-system
+  register: sops_secret
+  failed_when: false
+  changed_when: false
+
+- name: Create sops-age secret for Flux
+  when: sops_secret.rc != 0
+  ansible.builtin.shell: |
+    k3s kubectl create secret generic sops-age \
+      --namespace=flux-system \
+      --from-file=age.agekey=/etc/sops/age/keys.txt
+  register: sops_secret_result
+  failed_when: false
+  changed_when: sops_secret_result.rc == 0

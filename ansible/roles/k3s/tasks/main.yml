@@ -1,0 +1,33 @@
+---
+- name: Check if K3s is already installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/k3s
+  register: k3s_binary
+
+- name: Install K3s
+  when: not k3s_binary.stat.exists
+  ansible.builtin.shell: |
+    curl -sfL https://get.k3s.io | sh -s - \
+      --write-kubeconfig-mode 644
+  args:
+    creates: /usr/local/bin/k3s
+
+- name: Wait for K3s to be ready
+  ansible.builtin.command: k3s kubectl get nodes
+  register: k3s_nodes
+  retries: 30
+  delay: 5
+  until: k3s_nodes.rc == 0
+  changed_when: false
+
+- name: Fetch kubeconfig from Pi
+  ansible.builtin.fetch:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: /tmp/k3s-kubeconfig.yaml
+    flat: true
+
+- name: Allow K3s API server through UFW
+  community.general.ufw:
+    rule: allow
+    port: "6443"
+    proto: tcp

@@ -1,0 +1,59 @@
+---
+- name: Install WireGuard
+  ansible.builtin.apt:
+    name: wireguard
+    state: present
+
+- name: Check if PiVPN is already installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/pivpn
+  register: pivpn_binary
+
+- name: Create PiVPN unattended setup config
+  when: not pivpn_binary.stat.exists
+  ansible.builtin.copy:
+    dest: /tmp/pivpn-setup.conf
+    content: |
+      USING_DASHBOARD=0
+      IPv4dev=eth0
+      install_user={{ ansible_user }}
+      install_home=/home/{{ ansible_user }}
+      VPN=wireguard
+      pivpnPORT=51820
+      pivpnDNS1=1.1.1.1
+      pivpnDNS2=1.0.0.1
+      pivpnHOST={{ ansible_host }}
+      INPUT_CHAIN_EDITED=0
+      FORWARD_CHAIN_EDITED=0
+      pivpnPROTO=udp
+      pivpnDEV=wg0
+      pivpnNET=10.6.0.0/24
+      ALLOWED_IPS="0.0.0.0/0, ::0/0"
+      UNATTUPG=1
+      INSTALL_WIREGUARD=1
+    mode: "0600"
+
+- name: Install PiVPN (unattended)
+  when: not pivpn_binary.stat.exists
+  ansible.builtin.shell: |
+    curl -L https://install.pivpn.io | bash /dev/stdin --unattended /tmp/pivpn-setup.conf
+  args:
+    creates: /usr/local/bin/pivpn
+
+- name: Clean up PiVPN setup config
+  ansible.builtin.file:
+    path: /tmp/pivpn-setup.conf
+    state: absent
+
+- name: Allow WireGuard through UFW
+  community.general.ufw:
+    rule: allow
+    port: "51820"
+    proto: udp
+
+- name: Enable IP forwarding
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_set: true
+    reload: true
