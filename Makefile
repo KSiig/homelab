@@ -9,7 +9,7 @@ TERRAFORM_DIR = terraform
 # --- Ansible ---
 
 provision:
-	cd $(ANSIBLE_DIR) && ansible-playbook -i inventory.ini playbook.yml
+	cd $(ANSIBLE_DIR) && ansible-playbook -i inventory.ini playbook.yml --ask-become-pass
 
 # --- Terraform ---
 
