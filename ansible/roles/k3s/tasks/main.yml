@@ -12,6 +12,12 @@
   args:
     creates: /usr/local/bin/k3s
 
+- name: Allow K3s API server through UFW
+  community.general.ufw:
+    rule: allow
+    port: "6443"
+    proto: tcp
+
 - name: Wait for K3s to be ready
   ansible.builtin.command: k3s kubectl get nodes
   register: k3s_nodes
@@ -25,9 +31,3 @@
     src: /etc/rancher/k3s/k3s.yaml
     dest: /tmp/k3s-kubeconfig.yaml
     flat: true
-
-- name: Allow K3s API server through UFW
-  community.general.ufw:
-    rule: allow
-    port: "6443"
-    proto: tcp
