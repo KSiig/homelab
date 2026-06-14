@@ -28,8 +28,8 @@ Install on your Mac:
 ## Step 2: Boot and Verify Connectivity
 
 1. Plug in the Pi and wait ~2 minutes for first boot (cloud-init runs)
-2. Verify: `ping pi.local`
-3. SSH in: `ssh <username>@pi.local`
+2. Verify: `ping pi`
+3. SSH in: `ssh <username>@pi`
 4. Check RAM: `free -h`
 
 ## Step 3: Provision the Pi

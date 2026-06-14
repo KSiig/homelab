@@ -89,17 +89,17 @@
     mode: "0644"
   notify: Enable zram-swap
 
-- name: Configure UFW defaults
-  community.general.ufw:
-    state: enabled
-    default: deny
-    direction: incoming
-
 - name: Allow SSH through UFW
   community.general.ufw:
     rule: allow
     port: "22"
     proto: tcp
+
+- name: Configure UFW defaults
+  community.general.ufw:
+    state: enabled
+    default: deny
+    direction: incoming
 
 handlers:
   - name: Restart fail2ban

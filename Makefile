@@ -1,4 +1,4 @@
-PI_HOST ?= pi.local
+PI_HOST ?= pi
 PI_USER ?= kasper
 KUBECONFIG_PI ?= /tmp/k3s-kubeconfig.yaml
 ANSIBLE_DIR = ansible

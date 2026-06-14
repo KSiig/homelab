@@ -10,7 +10,7 @@
 SSH into the Pi and create a profile:
 
 ```bash
-ssh kasper@pi.local
+ssh kasper@pi
 sudo pivpn add
 ```
 
@@ -21,7 +21,7 @@ Enter a name for the client (e.g., `macbook`). This generates a config file at `
 Copy the config to your Mac:
 
 ```bash
-scp kasper@pi.local:~/configs/macbook.conf ~/Desktop/macbook.conf
+scp kasper@pi:~/configs/macbook.conf ~/Desktop/macbook.conf
 ```
 
 ## Import into WireGuard
@@ -73,7 +73,7 @@ To access the Pi's WireGuard from outside your home network, forward UDP port **
 
 | Symptom | Check |
 |---------|-------|
-| Can't connect | Is UDP 51820 forwarded on your router? Is the Pi's WireGuard service running? (`ssh pi.local 'sudo wg show'`) |
+| Can't connect | Is UDP 51820 forwarded on your router? Is the Pi's WireGuard service running? (`ssh pi 'sudo wg show'`) |
 | Connected but can't reach Pi | Check `AllowedIPs` in client config — should include `10.6.0.0/24` at minimum |
 | DNS not resolving | Check the `DNS` line in your client config — defaults to `1.1.1.1` |
 | Handshake but no traffic | Check IP forwarding on Pi: `sysctl net.ipv4.ip_forward` should return `1` |
