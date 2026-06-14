@@ -10,18 +10,18 @@
 SSH into the Pi and create a profile:
 
 ```bash
-ssh kasper@pi
+ssh ksi@pi
 sudo pivpn add
 ```
 
-Enter a name for the client (e.g., `macbook`). This generates a config file at `/home/kasper/configs/<name>.conf`.
+Enter a name for the client (e.g., `macbook`). This generates a config file at `/home/ksi/configs/<name>.conf`.
 
 ## Transfer the Config
 
 Copy the config to your Mac:
 
 ```bash
-scp kasper@pi:~/configs/macbook.conf ~/Desktop/macbook.conf
+scp ksi@pi:~/configs/macbook.conf ~/Desktop/macbook.conf
 ```
 
 ## Import into WireGuard

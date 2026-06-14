@@ -1,5 +1,5 @@
 PI_HOST ?= pi
-PI_USER ?= kasper
+PI_USER ?= ksi
 KUBECONFIG_PI ?= /tmp/k3s-kubeconfig.yaml
 ANSIBLE_DIR = ansible
 TERRAFORM_DIR = terraform
