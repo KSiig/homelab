@@ -4,3 +4,4 @@
 .terraform.lock.hcl
 /tmp/
 *.retry
+/ai/
