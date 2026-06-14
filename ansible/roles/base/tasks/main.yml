@@ -1,4 +1,8 @@
 ---
+- name: Wait for unattended-upgrades to finish
+  ansible.builtin.shell: while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
+  changed_when: false
+
 - name: Update and upgrade apt packages
   ansible.builtin.apt:
     update_cache: true
