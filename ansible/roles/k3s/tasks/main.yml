@@ -7,8 +7,7 @@
 - name: Install K3s
   when: not k3s_binary.stat.exists
   ansible.builtin.shell: |
-    curl -sfL https://get.k3s.io | sh -s - \
-      --write-kubeconfig-mode 644
+    curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--data-dir /mnt/data/rancher/k3s --write-kubeconfig-mode 644" sh -s -
   args:
     creates: /usr/local/bin/k3s
 

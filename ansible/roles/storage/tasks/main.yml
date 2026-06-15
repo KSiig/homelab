@@ -1,0 +1,37 @@
+---
+- name: Install parted
+  ansible.builtin.apt:
+    name: parted
+    state: present
+
+- name: Check if data disk has a filesystem
+  ansible.builtin.command: blkid -o value -s TYPE /dev/sda1
+  register: sda1_fstype
+  changed_when: false
+  failed_when: false
+
+- name: Create GPT partition table
+  when: sda1_fstype.rc != 0
+  community.general.parted:
+    device: /dev/sda
+    label: gpt
+    number: 1
+    state: present
+    part_start: 0%
+    part_end: 100%
+    fs_type: ext4
+
+- name: Format partition as ext4
+  when: sda1_fstype.rc != 0
+  community.general.filesystem:
+    fstype: ext4
+    dev: /dev/sda1
+    opts: -L data
+
+- name: Mount data disk
+  ansible.posix.mount:
+    path: /mnt/data
+    src: LABEL=data
+    fstype: ext4
+    opts: defaults,noatime
+    state: mounted
