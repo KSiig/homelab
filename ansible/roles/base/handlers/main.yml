@@ -8,10 +8,3 @@
   ansible.builtin.service:
     name: sshd
     state: restarted
-
-- name: Enable zram-swap
-  ansible.builtin.systemd:
-    name: zram-swap
-    enabled: true
-    state: started
-    daemon_reload: true

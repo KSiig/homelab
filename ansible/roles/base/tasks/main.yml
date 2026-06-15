@@ -86,7 +86,13 @@
       [Install]
       WantedBy=multi-user.target
     mode: "0644"
-  notify: Enable zram-swap
+
+- name: Enable and start zram-swap
+  ansible.builtin.systemd:
+    name: zram-swap
+    enabled: true
+    state: started
+    daemon_reload: true
 
 - name: Allow SSH through UFW
   community.general.ufw:
