@@ -4,6 +4,4 @@
   become: true
   roles:
     - base
-    - storage
-    - k3s
     - wireguard
