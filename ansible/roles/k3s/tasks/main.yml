@@ -7,7 +7,10 @@
 - name: Install K3s (without starting)
   when: not k3s_binary.stat.exists
   ansible.builtin.shell: |
-    curl -sfL https://get.k3s.io | INSTALL_K3S_SKIP_START=true INSTALL_K3S_EXEC="--data-dir /mnt/data/rancher/k3s --write-kubeconfig-mode 644" sh -s -
+    curl -sfL https://get.k3s.io | \
+      INSTALL_K3S_SKIP_START=true \
+      INSTALL_K3S_EXEC="--data-dir /mnt/data/rancher/k3s --write-kubeconfig-mode 644 --datastore-endpoint sqlite:///mnt/data/rancher/k3s/server/db/state.db?_journal=WAL&_synchronous=NORMAL" \
+      sh -s -
   args:
     creates: /usr/local/bin/k3s
 
