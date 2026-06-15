@@ -4,6 +4,12 @@
     path: /usr/local/bin/k3s
   register: k3s_binary
 
+- name: Create K3s database directory
+  ansible.builtin.file:
+    path: /mnt/data/rancher/k3s/server/db
+    state: directory
+    mode: "0700"
+
 - name: Install K3s (without starting)
   when: not k3s_binary.stat.exists
   ansible.builtin.shell: |
