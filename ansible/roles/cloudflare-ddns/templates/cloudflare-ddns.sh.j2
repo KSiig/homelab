@@ -1,0 +1,59 @@
+#!/bin/bash
+set -euo pipefail
+
+CF_API_TOKEN="{{ cf_api_token }}"
+CF_ZONE_ID="{{ cf_zone_id }}"
+CF_RECORD="{{ cf_ddns_record }}"
+CF_API="https://api.cloudflare.com/client/v4"
+
+# Get current public IP
+PUBLIC_IP=$(curl -sf --max-time 10 https://api.ipify.org || true)
+if [[ -z "$PUBLIC_IP" ]]; then
+  logger -t cloudflare-ddns "ERROR: Could not determine public IP, skipping update"
+  exit 0
+fi
+
+# Get current DNS record from Cloudflare
+RECORD_JSON=$(curl -sf --max-time 10 \
+  -H "Authorization: Bearer ${CF_API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  "${CF_API}/zones/${CF_ZONE_ID}/dns_records?type=A&name=${CF_RECORD}" || true)
+
+if [[ -z "$RECORD_JSON" ]]; then
+  logger -t cloudflare-ddns "ERROR: Could not reach Cloudflare API, skipping update"
+  exit 0
+fi
+
+RECORD_ID=$(echo "$RECORD_JSON" | jq -r '.result[0].id // empty')
+CURRENT_IP=$(echo "$RECORD_JSON" | jq -r '.result[0].content // empty')
+
+if [[ -z "$RECORD_ID" ]]; then
+  logger -t cloudflare-ddns "ERROR: DNS record ${CF_RECORD} not found in zone ${CF_ZONE_ID}"
+  exit 1
+fi
+
+if [[ "$PUBLIC_IP" == "$CURRENT_IP" ]]; then
+  logger -t cloudflare-ddns "INFO: IP unchanged (${PUBLIC_IP}), no update needed"
+  exit 0
+fi
+
+# Update the record
+UPDATE_RESULT=$(curl -sf --max-time 10 \
+  -X PUT \
+  -H "Authorization: Bearer ${CF_API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  --data "{\"type\":\"A\",\"name\":\"${CF_RECORD}\",\"content\":\"${PUBLIC_IP}\",\"ttl\":60,\"proxied\":false}" \
+  "${CF_API}/zones/${CF_ZONE_ID}/dns_records/${RECORD_ID}" || true)
+
+if [[ -z "$UPDATE_RESULT" ]]; then
+  logger -t cloudflare-ddns "ERROR: Failed to update DNS record"
+  exit 0
+fi
+
+SUCCESS=$(echo "$UPDATE_RESULT" | jq -r '.success')
+if [[ "$SUCCESS" == "true" ]]; then
+  logger -t cloudflare-ddns "INFO: Updated ${CF_RECORD} from ${CURRENT_IP} to ${PUBLIC_IP}"
+else
+  ERRORS=$(echo "$UPDATE_RESULT" | jq -r '.errors // [] | map(.message) | join(", ")')
+  logger -t cloudflare-ddns "ERROR: Cloudflare API error: ${ERRORS}"
+fi

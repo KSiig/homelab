@@ -15,6 +15,8 @@
       - unattended-upgrades
       - apt-listchanges
       - ufw
+      - qrencode
+      - wireguard-tools
     state: present
 
 - name: Set timezone
@@ -36,9 +38,9 @@
     content: |
       [sshd]
       enabled = true
-      port = ssh
+      port = 2222
       filter = sshd
-      maxretry = 5
+      maxretry = 3
       bantime = 3600
     mode: "0644"
   notify: Restart fail2ban
@@ -48,6 +50,20 @@
     path: /etc/ssh/sshd_config
     regexp: "^#?PasswordAuthentication"
     line: "PasswordAuthentication no"
+  notify: Restart sshd
+
+- name: Set SSH port to 2222
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?Port "
+    line: "Port 2222"
+  notify: Restart sshd
+
+- name: Disable root login
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PermitRootLogin"
+    line: "PermitRootLogin no"
   notify: Restart sshd
 
 - name: Disable file swap
@@ -60,11 +76,6 @@
     path: /etc/fstab
     regexp: '\sswap\s'
     state: absent
-
-- name: Install zram-config
-  ansible.builtin.apt:
-    name: linux-modules-extra-raspi
-    state: present
 
 - name: Load zram module
   community.general.modprobe:
@@ -89,32 +100,51 @@
     mode: "0644"
   notify: Enable zram-swap
 
+- name: Set swappiness to 10
+  ansible.posix.sysctl:
+    name: vm.swappiness
+    value: "10"
+    sysctl_set: true
+    reload: true
+
+# WireGuard 51820/udp will be allowed by the wireguard role
+- name: Allow SSH through UFW
+  community.general.ufw:
+    rule: allow
+    port: "2222"
+    proto: tcp
+
 - name: Configure UFW defaults
   community.general.ufw:
     state: enabled
     default: deny
     direction: incoming
 
-- name: Allow SSH through UFW
-  community.general.ufw:
-    rule: allow
-    port: "22"
-    proto: tcp
+- name: Configure static IP via netplan
+  ansible.builtin.copy:
+    dest: /etc/netplan/01-static.yaml
+    content: |
+      network:
+        version: 2
+        ethernets:
+          eth0:
+            dhcp4: false
+            addresses:
+              - 192.168.1.142/24
+            routes:
+              - to: default
+                via: 192.168.1.1
+            nameservers:
+              addresses:
+                - 1.1.1.1
+                - 1.0.0.1
+    mode: "0600"
+  notify: Apply netplan
 
-handlers:
-  - name: Restart fail2ban
-    ansible.builtin.service:
-      name: fail2ban
-      state: restarted
-
-  - name: Restart sshd
-    ansible.builtin.service:
-      name: sshd
-      state: restarted
-
-  - name: Enable zram-swap
-    ansible.builtin.systemd:
-      name: zram-swap
-      enabled: true
-      state: started
-      daemon_reload: true
+- name: Enable cgroup memory in boot config
+  ansible.builtin.lineinfile:
+    path: /boot/firmware/cmdline.txt
+    backrefs: true
+    regexp: '^((?!.*cgroup_memory=1).*)$'
+    line: '\1 cgroup_memory=1 cgroup_enable=memory'
+  notify: Reboot required

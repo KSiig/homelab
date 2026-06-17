@@ -4,52 +4,44 @@
     name: wireguard
     state: present
 
-- name: Check if PiVPN is already installed
+- name: Check if WireGuard private key exists
   ansible.builtin.stat:
-    path: /usr/local/bin/pivpn
-  register: pivpn_binary
+    path: /etc/wireguard/private.key
+  register: wg_private_key
 
-- name: Create PiVPN unattended setup config
-  when: not pivpn_binary.stat.exists
-  ansible.builtin.copy:
-    dest: /tmp/pivpn-setup.conf
-    content: |
-      USING_DASHBOARD=0
-      IPv4dev=eth0
-      install_user={{ ansible_user }}
-      install_home=/home/{{ ansible_user }}
-      VPN=wireguard
-      pivpnPORT=51820
-      pivpnDNS1=1.1.1.1
-      pivpnDNS2=1.0.0.1
-      pivpnHOST={{ ansible_host }}
-      INPUT_CHAIN_EDITED=0
-      FORWARD_CHAIN_EDITED=0
-      pivpnPROTO=udp
-      pivpnDEV=wg0
-      pivpnNET=10.6.0.0/24
-      ALLOWED_IPS="0.0.0.0/0, ::0/0"
-      UNATTUPG=1
-      INSTALL_WIREGUARD=1
+- name: Generate WireGuard private key
+  when: not wg_private_key.stat.exists
+  ansible.builtin.shell: wg genkey > /etc/wireguard/private.key
+  args:
+    creates: /etc/wireguard/private.key
+
+- name: Set private key permissions
+  ansible.builtin.file:
+    path: /etc/wireguard/private.key
     mode: "0600"
 
-- name: Install PiVPN (unattended)
-  when: not pivpn_binary.stat.exists
-  ansible.builtin.shell: |
-    curl -L https://install.pivpn.io | bash /dev/stdin --unattended /tmp/pivpn-setup.conf
-  args:
-    creates: /usr/local/bin/pivpn
+- name: Read private key
+  ansible.builtin.slurp:
+    src: /etc/wireguard/private.key
+  register: wg_private_key_content
 
-- name: Clean up PiVPN setup config
-  ansible.builtin.file:
-    path: /tmp/pivpn-setup.conf
-    state: absent
+- name: Generate public key
+  ansible.builtin.shell: cat /etc/wireguard/private.key | wg pubkey
+  register: wg_public_key
+  changed_when: false
 
-- name: Allow WireGuard through UFW
-  community.general.ufw:
-    rule: allow
-    port: "51820"
-    proto: udp
+- name: Save public key
+  ansible.builtin.copy:
+    content: "{{ wg_public_key.stdout }}\n"
+    dest: /etc/wireguard/public.key
+    mode: "0644"
+
+- name: Configure WireGuard interface
+  ansible.builtin.template:
+    src: wg0.conf.j2
+    dest: /etc/wireguard/wg0.conf
+    mode: "0600"
+  notify: Restart WireGuard
 
 - name: Enable IP forwarding
   ansible.posix.sysctl:
@@ -57,3 +49,19 @@
     value: "1"
     sysctl_set: true
     reload: true
+
+- name: Allow WireGuard through UFW
+  community.general.ufw:
+    rule: allow
+    port: "51820"
+    proto: udp
+
+- name: Enable and start WireGuard
+  ansible.builtin.systemd:
+    name: wg-quick@wg0
+    enabled: true
+    state: started
+
+- name: Display WireGuard public key
+  ansible.builtin.debug:
+    msg: "WireGuard public key: {{ wg_public_key.stdout }}"

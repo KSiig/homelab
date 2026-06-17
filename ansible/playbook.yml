@@ -6,3 +6,4 @@
     - base
     - k3s
     - wireguard
+    - cloudflare-ddns

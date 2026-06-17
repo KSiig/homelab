@@ -1,0 +1,15 @@
+[Interface]
+Address = 10.0.0.1/24
+ListenPort = 51820
+PrivateKey = {{ wg_private_key_content.content | b64decode | trim }}
+
+PostUp = iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -o eth0 -j MASQUERADE
+PostUp = iptables -A FORWARD -i wg0 -j ACCEPT
+PostUp = iptables -A FORWARD -o wg0 -j ACCEPT
+PostDown = iptables -t nat -D POSTROUTING -s 10.0.0.0/24 -o eth0 -j MASQUERADE
+PostDown = iptables -D FORWARD -i wg0 -j ACCEPT
+PostDown = iptables -D FORWARD -o wg0 -j ACCEPT
+
+# Peers are added manually via wg set or by appending to this file
+# Mobile clients: AllowedIPs = 10.0.0.X/32
+# OCI peer (future): AllowedIPs = 10.0.0.10/32, 10.1.0.0/16

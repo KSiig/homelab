@@ -1,0 +1,48 @@
+---
+- name: Create DDNS script directory
+  ansible.builtin.file:
+    path: /opt/cloudflare-ddns
+    state: directory
+    mode: "0755"
+
+- name: Install DDNS update script
+  ansible.builtin.template:
+    src: cloudflare-ddns.sh.j2
+    dest: /opt/cloudflare-ddns/update.sh
+    mode: "0755"
+
+- name: Create systemd service for DDNS
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/cloudflare-ddns.service
+    content: |
+      [Unit]
+      Description=Update Cloudflare DNS record with current public IP
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/opt/cloudflare-ddns/update.sh
+    mode: "0644"
+
+- name: Create systemd timer for DDNS
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/cloudflare-ddns.timer
+    content: |
+      [Unit]
+      Description=Run Cloudflare DDNS update every 5 minutes
+
+      [Timer]
+      OnBootSec=1min
+      OnUnitActiveSec=5min
+
+      [Install]
+      WantedBy=timers.target
+    mode: "0644"
+
+- name: Enable and start DDNS timer
+  ansible.builtin.systemd:
+    name: cloudflare-ddns.timer
+    enabled: true
+    state: started
+    daemon_reload: true
