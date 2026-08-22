@@ -1,0 +1,4 @@
+project_id            = "homelab-siig"
+region                = "europe-west1"
+cloudflare_account_id = ""
+d1_database_id        = ""
