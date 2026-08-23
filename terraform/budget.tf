@@ -1,20 +1,24 @@
 data "google_billing_account" "account" {
-  display_name = "My Billing Account"
+  display_name = "My Billing Account 1"
   open         = true
+}
+
+data "google_project" "current" {
+  project_id = var.project_id
 }
 
 resource "google_billing_budget" "zero_spend_alert" {
   billing_account = data.google_billing_account.account.id
-  display_name    = "Homelab $0 budget alert"
+  display_name    = "Homelab budget alert"
 
   budget_filter {
-    projects = ["projects/${var.project_id}"]
+    projects = ["projects/${data.google_project.current.number}"]
   }
 
   amount {
     specified_amount {
-      currency_code = "USD"
-      units         = "1"
+      currency_code = "DKK"
+      units         = "100"
     }
   }
 
@@ -22,15 +26,7 @@ resource "google_billing_budget" "zero_spend_alert" {
     threshold_percent = 0.5
   }
   threshold_rules {
-    threshold_percent = 1.0
-  }
-  threshold_rules {
-    threshold_percent = 1.0
+    threshold_percent = 0.9
     spend_basis       = "FORECASTED_SPEND"
-  }
-
-  all_updates_rule {
-    monitoring_notification_channels = []
-    disable_default_iam_recipients   = false
   }
 }

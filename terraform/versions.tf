@@ -9,7 +9,7 @@ terraform {
   }
 
   backend "gcs" {
-    bucket = "homelab-siig-tfstate"
+    bucket = "lateral-booking-506410-k4-tfstate"
     prefix = "terraform/state"
   }
 }
