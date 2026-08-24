@@ -4,4 +4,4 @@ compatibility_date = "2026-08-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "homelab"
-database_id = "" # fill after: wrangler d1 create homelab
+database_id = "f4c3b701-9150-472d-b20b-e2530b7ca1b9"
