@@ -14,7 +14,3 @@ variable "cloudflare_account_id" {
   type        = string
 }
 
-variable "d1_database_id" {
-  description = "Cloudflare D1 database ID"
-  type        = string
-}

@@ -1,4 +1,4 @@
 project_id            = "lateral-booking-506410-k4"
 region                = "europe-west1"
 cloudflare_account_id = ""
-d1_database_id        = ""
+# Cloudflare API token: set CLOUDFLARE_API_TOKEN env var (provider reads it directly)
