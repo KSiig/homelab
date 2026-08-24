@@ -1,0 +1,17 @@
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/*.tfplan
+terraform/.terraform.lock.hcl
+
+# Cloudflare
+cloudflare/.wrangler/
+cloudflare/node_modules/
+
+# Secrets
+*.tfvars
+!terraform/terraform.tfvars.example
+
+# OS
+.DS_Store
