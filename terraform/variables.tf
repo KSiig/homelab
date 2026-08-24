@@ -14,7 +14,8 @@ variable "cloudflare_account_id" {
   type        = string
 }
 
-variable "d1_database_id" {
-  description = "Cloudflare D1 database ID"
+variable "cloudflare_api_token" {
+  description = "Cloudflare API token"
   type        = string
+  sensitive   = true
 }
