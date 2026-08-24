@@ -1,6 +1,4 @@
-provider "cloudflare" {
-  api_token = var.cloudflare_api_token
-}
+provider "cloudflare" {}
 
 resource "cloudflare_d1_database" "homelab" {
   account_id       = var.cloudflare_account_id

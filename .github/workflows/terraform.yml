@@ -24,6 +24,7 @@ env:
   TF_VERSION: "1.14.7"
   TF_WORKING_DIR: terraform
   TF_CLI_ARGS: "-no-color"
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
 jobs:
   plan:
