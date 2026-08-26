@@ -62,8 +62,14 @@ locals {
     "roles/storage.admin",
     "roles/cloudscheduler.admin",
     "roles/secretmanager.admin",
-    "roles/billing.viewer",
   ]
+  # NOTE: roles/billing.viewer is intentionally NOT granted here.
+  # Billing roles can't be bound at project level (GCP restriction);
+  # they must be granted on the billing account itself via
+  # google_billing_account_iam_member. The GitHub Actions deployer
+  # doesn't need billing read access for Function/Storage/Scheduler/
+  # Secret deploys, and the budget alert in budget.tf is read at apply
+  # time under whoever runs terraform (the bootstrap user, not this SA).
 }
 
 resource "google_project_iam_member" "github_actions" {
