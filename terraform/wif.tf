@@ -27,7 +27,13 @@ resource "google_iam_workload_identity_pool_provider" "github_actions" {
     "attribute.repository_owner" = "assertion.repository_owner"
   }
 
-  attribute_condition = "assertion.repository_owner == \"KSiig\""
+  # Restrict by repo, not just owner, so a forked repo under the same owner
+  # can't impersonate this SA.
+  attribute_condition = <<-EOT
+    assertion.repository_owner == "KSiig" &&
+    (assertion.repository == "KSiig/homelab" ||
+     assertion.repository == "KSiig/tilbudstracker")
+  EOT
 
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"
@@ -43,9 +49,16 @@ resource "google_service_account" "github_actions" {
 }
 
 locals {
+  # Roles granted project-wide to the GitHub Actions SA.
+  # NOTE: `roles/iam.serviceAccountUser` is intentionally NOT in this list.
+  # Granting it project-wide would let the deployer impersonate *any* SA in
+  # the project (Checkov CKV_GCP_41, CodeRabbit high-risk finding). Instead,
+  # SA User is granted per-runtime-SA via
+  # google_service_account_iam_member.github_actions_runtime_user, scoped to
+  # the explicit Cloud Functions runtime SA(s) declared in
+  # var.function_runtime_service_accounts.
   github_actions_roles = [
     "roles/cloudfunctions.developer",
-    "roles/iam.serviceAccountUser",
     "roles/storage.admin",
     "roles/cloudscheduler.admin",
     "roles/secretmanager.admin",
@@ -59,6 +72,17 @@ resource "google_project_iam_member" "github_actions" {
   project = var.project_id
   role    = each.value
   member  = "serviceAccount:${google_service_account.github_actions.email}"
+}
+
+# Scoped SA User binding on each Cloud Functions runtime SA. With the default
+# empty list this creates zero resources; functions PRs will populate the
+# variable and the binding will be created at apply time.
+resource "google_service_account_iam_member" "github_actions_runtime_user" {
+  for_each = toset(var.function_runtime_service_accounts)
+
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${each.value}"
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.github_actions.email}"
 }
 
 resource "google_service_account_iam_binding" "github_actions_workload_identity" {
