@@ -24,6 +24,13 @@ env:
   TF_VERSION: "1.14.7"
   TF_WORKING_DIR: terraform
   TF_CLI_ARGS: "-no-color"
+  # Non-sensitive vars (public project + Cloudflare account id); hardcoded for
+  # the single-env homelab. If multi-env support is added later, move these to
+  # repository variables (Settings -> Secrets and variables -> Actions ->
+  # Variables) and reference as ${{ vars.* }}.
+  TF_VAR_project_id: "lateral-booking-506410-k4"
+  TF_VAR_region: "europe-west1"
+  TF_VAR_cloudflare_account_id: "5b3269050c8afff008527d038d4f2538"
   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
 jobs:
