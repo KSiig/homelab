@@ -62,6 +62,17 @@ locals {
     "roles/storage.admin",
     "roles/cloudscheduler.admin",
     "roles/secretmanager.admin",
+    # IAM-admin roles: required so the GitHub Actions SA can refresh and
+    # manage its own WIF pool, service account, project-IAM bindings, and
+    # API enablements on subsequent applies (Plan needs read perms; Apply
+    # needs write). Without these, every CI run fails with 403 on
+    # iam.workloadIdentityPools.get / iam.serviceAccounts.get.
+    # Acceptable for the single-operator homelab; revisit if the project
+    # ever gets shared.
+    "roles/iam.workloadIdentityPoolAdmin",
+    "roles/iam.serviceAccountAdmin",
+    "roles/resourcemanager.projectIamAdmin",
+    "roles/serviceusage.serviceUsageAdmin",
   ]
   # NOTE: roles/billing.viewer is intentionally NOT granted here.
   # Billing roles can't be bound at project level (GCP restriction);
