@@ -65,21 +65,19 @@ locals {
     # IAM-admin roles: required so the GitHub Actions SA can refresh and
     # manage its own WIF pool, service account, project-IAM bindings, and
     # API enablements on subsequent applies (Plan needs read perms; Apply
-    # needs write). Without these, every CI run fails with 403 on
-    # iam.workloadIdentityPools.get / iam.serviceAccounts.get.
-    # Acceptable for the single-operator homelab; revisit if the project
-    # ever gets shared.
+    # needs write). Acceptable for the single-operator homelab; revisit
+    # if the project ever gets shared.
     #
-    # Both roles are granted because:
-    # - roles/iam.workloadIdentityPoolAdmin should include
-    #   iam.workloadIdentityPools.get per docs, but project-level grants
-    #   don't always seem to propagate for WIF pools (verified earlier:
-    #   binding was in place but API still 403'd).
-    # - roles/iam.securityAdmin should cover every IAM op including WIF
-    #   pool, but in practice also 403'd.
-    # Granting both is belt-and-suspenders; one of them should work.
+    # roles/iam.workloadIdentityPoolViewer is here because of a known
+    # google-provider bug (issue hashicorp/terraform-provider-google#26963):
+    # the resource calls an UNDOCUMENTED perm (iam.workloadIdentityPools
+    # .getAttestationRules, and .get) that is NOT in any documented role,
+    # including workloadIdentityPoolAdmin (which claims .* but doesn't
+    # actually have it). GCP support confirmed workloadIdentityPoolViewer
+    # does include these perms despite the doc gap. Viewer is read-only;
+    # adding workloadIdentityPoolAdmin alongside covers future Apply (write).
+    "roles/iam.workloadIdentityPoolViewer",
     "roles/iam.workloadIdentityPoolAdmin",
-    "roles/iam.securityAdmin",
     "roles/iam.serviceAccountAdmin",
     "roles/resourcemanager.projectIamAdmin",
     "roles/serviceusage.serviceUsageAdmin",
