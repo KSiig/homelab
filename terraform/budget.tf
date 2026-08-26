@@ -1,14 +1,22 @@
-data "google_billing_account" "account" {
-  display_name = "My Billing Account 1"
-  open         = true
-}
-
 data "google_project" "current" {
   project_id = var.project_id
 }
 
+# Grant the GitHub Actions SA roles/billing.admin on the billing account
+# so terraform plan can refresh state of the budget resource below.
+# Tried roles/billing.viewer first (per GCP docs it includes
+# billing.budgets.get), but the API still returned 403. Falling back to
+# roles/billing.admin, which unambiguously grants every billing op
+# including budget read. Billing roles can't be bound at project level
+# (GCP restriction); they must be granted on the billing account.
+resource "google_billing_account_iam_member" "github_actions_billing_viewer" {
+  billing_account_id = var.billing_account_id
+  role               = "roles/billing.admin"
+  member             = "serviceAccount:${google_service_account.github_actions.email}"
+}
+
 resource "google_billing_budget" "zero_spend_alert" {
-  billing_account = data.google_billing_account.account.id
+  billing_account = var.billing_account_id
   display_name    = "Homelab budget alert"
 
   budget_filter {
