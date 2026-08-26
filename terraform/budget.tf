@@ -1,14 +1,9 @@
-data "google_billing_account" "account" {
-  display_name = "My Billing Account 1"
-  open         = true
-}
-
 data "google_project" "current" {
   project_id = var.project_id
 }
 
 resource "google_billing_budget" "zero_spend_alert" {
-  billing_account = data.google_billing_account.account.id
+  billing_account = var.billing_account_id
   display_name    = "Homelab budget alert"
 
   budget_filter {

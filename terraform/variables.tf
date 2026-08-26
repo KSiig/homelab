@@ -20,3 +20,8 @@ variable "function_runtime_service_accounts" {
   default     = []
 }
 
+variable "billing_account_id" {
+  description = "GCP billing account ID (format XXXXXX-XXXXXX-XXXXXX). Hardcoded instead of looking up by display name so the GitHub Actions SA doesn't need roles/billing.viewer on the billing account just to plan Terraform."
+  type        = string
+}
+

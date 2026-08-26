@@ -69,7 +69,13 @@ locals {
     # iam.workloadIdentityPools.get / iam.serviceAccounts.get.
     # Acceptable for the single-operator homelab; revisit if the project
     # ever gets shared.
-    "roles/iam.workloadIdentityPoolAdmin",
+    #
+    # NOTE: roles/iam.workloadIdentityPoolAdmin at project level did NOT
+    # grant iam.workloadIdentityPools.get in practice (verified via gcloud:
+    # the binding was in place but API still returned 403). Falling back to
+    # roles/iam.securityAdmin, which definitively covers every IAM op
+    # including WIF pool read.
+    "roles/iam.securityAdmin",
     "roles/iam.serviceAccountAdmin",
     "roles/resourcemanager.projectIamAdmin",
     "roles/serviceusage.serviceUsageAdmin",
