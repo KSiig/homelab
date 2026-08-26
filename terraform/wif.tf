@@ -70,11 +70,15 @@ locals {
     # Acceptable for the single-operator homelab; revisit if the project
     # ever gets shared.
     #
-    # NOTE: roles/iam.workloadIdentityPoolAdmin at project level did NOT
-    # grant iam.workloadIdentityPools.get in practice (verified via gcloud:
-    # the binding was in place but API still returned 403). Falling back to
-    # roles/iam.securityAdmin, which definitively covers every IAM op
-    # including WIF pool read.
+    # Both roles are granted because:
+    # - roles/iam.workloadIdentityPoolAdmin should include
+    #   iam.workloadIdentityPools.get per docs, but project-level grants
+    #   don't always seem to propagate for WIF pools (verified earlier:
+    #   binding was in place but API still 403'd).
+    # - roles/iam.securityAdmin should cover every IAM op including WIF
+    #   pool, but in practice also 403'd.
+    # Granting both is belt-and-suspenders; one of them should work.
+    "roles/iam.workloadIdentityPoolAdmin",
     "roles/iam.securityAdmin",
     "roles/iam.serviceAccountAdmin",
     "roles/resourcemanager.projectIamAdmin",
