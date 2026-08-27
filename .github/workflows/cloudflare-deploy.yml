@@ -1,0 +1,92 @@
+# Reusable Cloudflare deploy workflow.
+# Call from another repo:
+#   jobs:
+#     deploy:
+#       uses: KSiig/homelab/.github/workflows/cloudflare-deploy.yml@main
+#       with:
+#         working_directory: web
+#         command: pages deploy ./dist
+#         cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+#       secrets:
+#         cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+name: Cloudflare Deploy
+
+on:
+  workflow_call:
+    inputs:
+      working_directory:
+        description: "Directory to run wrangler from."
+        type: string
+        default: "cloudflare"
+      command:
+        description: "wrangler subcommand (default: deploy)."
+        type: string
+        default: "deploy"
+      node_version:
+        description: "Node.js version."
+        type: string
+        default: "22"
+      cloudflare_account_id:
+        description: "Cloudflare account ID. Falls back to CLOUDFLARE_ACCOUNT_ID env or wrangler.toml."
+        type: string
+        required: false
+        default: ""
+    secrets:
+      cloudflare_api_token:
+        description: "Cloudflare API token."
+        required: true
+  push:
+    branches: [main]
+    paths:
+      - "cloudflare/**"
+      - ".github/workflows/cloudflare-deploy.yml"
+  workflow_dispatch:
+    inputs:
+      working_directory:
+        description: "Directory to run wrangler from."
+        type: string
+        default: "cloudflare"
+      command:
+        description: "wrangler subcommand."
+        type: string
+        default: "deploy"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+
+      - name: Run wrangler
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.cloudflare_api_token }}
+          accountId: ${{ inputs.cloudflare_account_id }}
+          workingDirectory: ${{ inputs.working_directory }}
+          command: ${{ inputs.command }}
+
+  validate:
+    name: Validate workflow (smoke test)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare
+          command: --version

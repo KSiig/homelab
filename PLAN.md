@@ -257,9 +257,34 @@ At 256 MB memory, a 5-minute agentic run uses ~75 GB-seconds. The free tier (400
 
 ## CI/CD
 
-- **GCP functions**: GitHub Actions deploys on push to `main`. Uses Workload Identity Federation (no service account keys).
-- **Cloudflare**: GitHub Actions + `wrangler` CLI. API token stored as GitHub secret.
-- **Terraform**: GitHub Actions with plan on PR, apply on merge to `main`.
+Two reusable GitHub Actions workflows live at `.github/workflows/`:
+
+- **`terraform.yml`** — Terraform plan on PR, apply on merge to `main`. Uses GCP Workload Identity Federation (no service account keys).
+- **`cloudflare-deploy.yml`** — reusable workflow that deploys Cloudflare Workers and Pages via `wrangler` CLI. Authenticates with the `CLOUDFLARE_API_TOKEN` secret and the `CLOUDFLARE_ACCOUNT_ID` repository variable. Triggers on push to `main` when `cloudflare/**` changes, on `workflow_dispatch`, and via `workflow_call` from other repos.
+
+### Calling the Cloudflare workflow from a consumer repo
+
+```yaml
+# From KSiig/tilbudstracker — .github/workflows/cloudflare-web.yml
+name: Deploy Cloudflare Pages
+on:
+  push:
+    branches: [main]
+    paths: ["web/**"]
+jobs:
+  deploy:
+    uses: KSiig/homelab/.github/workflows/cloudflare-deploy.yml@main
+    with:
+      working_directory: web
+      command: pages deploy ./dist
+      cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    secrets:
+      cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+```
+
+Inputs the caller can override: `working_directory` (default `cloudflare`), `command` (default `deploy`), `node_version` (default `22`), `cloudflare_account_id` (falls back to `CLOUDFLARE_ACCOUNT_ID` env or `wrangler.toml`).
+
+Secrets the caller must pass: `cloudflare_api_token` — map your repo's Cloudflare token into the slot. The homelab repo's `CLOUDFLARE_API_TOKEN` secret has `Account.Workers Scripts:Edit`, `Account.Pages:Edit`, and `Account.D1:Edit` scopes from SII-7. Consumer repos must use a token with equivalent scopes.
 
 ## Setup checklist
 
