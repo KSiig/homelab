@@ -9,6 +9,11 @@
 #         cloudflare_account_id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
 #       secrets:
 #         cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+#
+# Note for pnpm consumers: wrangler-action@v3 auto-detects the package manager
+# from lockfiles (pnpm-lock.yaml -> pnpm). If your consumer repo uses pnpm,
+# add a pnpm setup step (e.g. pnpm/action-setup) at the job level before this
+# workflow runs, otherwise the wrangler install step fails on ubuntu-latest.
 
 name: Cloudflare Deploy
 
