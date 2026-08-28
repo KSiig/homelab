@@ -286,6 +286,8 @@ Inputs the caller can override: `working_directory` (default `cloudflare`), `com
 
 Secrets the caller must pass: `cloudflare_api_token` — map your repo's Cloudflare token into the slot. The homelab repo's `CLOUDFLARE_API_TOKEN` secret has `Account.Workers Scripts:Edit`, `Account.Pages:Edit`, and `Account.D1:Edit` scopes from SII-7. Consumer repos must use a token with equivalent scopes.
 
+> **pnpm consumers**: `wrangler-action@v3` auto-detects the package manager from lockfiles (`pnpm-lock.yaml` → pnpm). If your consumer repo uses pnpm, add a pnpm setup step at the job level before calling this workflow (e.g. `pnpm/action-setup@v4`). Otherwise the wrangler install step fails on `ubuntu-latest` because pnpm isn't pre-installed.
+
 ## Setup checklist
 
 - [ ] Create GCP project with billing account + $0 budget alert
