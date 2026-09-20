@@ -65,8 +65,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Reusable deploy entry point. workflow_call consumers (e.g. SII-101
+  # priskurven Worker) use this with `command: deploy`. Not run on push
+  # because homelab has no Worker `main`; pushes apply D1 migrations instead.
   deploy:
     name: Deploy
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -82,6 +86,28 @@ jobs:
           accountId: ${{ inputs.cloudflare_account_id }}
           workingDirectory: ${{ inputs.working_directory }}
           command: ${{ inputs.command }}
+
+  # On push under cloudflare/**, apply every bound D1 database's migrations
+  # remotely. Replaces the previous "wrangler deploy" push behaviour, which
+  # failed because homelab has no Worker `main`.
+  d1-migrations:
+    name: Apply D1 migrations
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Apply priskurven D1 migrations
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare
+          command: d1 migrations apply priskurven --remote
 
   validate:
     name: Validate workflow (smoke test)

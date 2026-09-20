@@ -5,3 +5,13 @@ compatibility_date = "2026-08-01"
 binding = "DB"
 database_name = "homelab"
 database_id = "f4c3b701-9150-472d-b20b-e2530b7ca1b9"
+
+# Priskurven (M1, SII-109). database_id is the value of the
+# `priskurven_d1_database_id` Terraform output once SII-91 has been applied.
+# CI overwrites this placeholder at apply time so the committed value is only
+# a stand-in until the real id is published.
+[[d1_databases]]
+binding = "PRISKURVEN"
+database_name = "priskurven"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "d1-migrations/priskurven"
