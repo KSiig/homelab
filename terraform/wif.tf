@@ -28,12 +28,16 @@ resource "google_iam_workload_identity_pool_provider" "github_actions" {
   }
 
   # Restrict by repo, not just owner, so a forked repo under the same owner
-  # can't impersonate this SA.
+  # can't impersonate this SA. Also restrict by ref: only workflows running
+  # against refs/heads/main (i.e. the production-deploy push in
+  # .github/workflows/terraform.yml) may impersonate this SA — a workflow
+  # on any other writable branch or tag in the listed repos cannot.
   attribute_condition = <<-EOT
     assertion.repository_owner == "KSiig" &&
     (assertion.repository == "KSiig/homelab" ||
      assertion.repository == "KSiig/tilbudstracker" ||
-     assertion.repository == "KSiig/priskurven")
+     assertion.repository == "KSiig/priskurven") &&
+    assertion.ref == "refs/heads/main"
   EOT
 
   oidc {
