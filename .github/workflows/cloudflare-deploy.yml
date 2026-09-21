@@ -101,6 +101,31 @@ jobs:
         with:
           node-version: "22"
 
+      # cloudflare/wrangler.toml on main keeps the PRISKURVEN binding's
+      # database_id as a placeholder UUID (SII-109). wrangler resolves the
+      # binding by database_id, so the placeholder would target an invalid
+      # database. Look up the real ID via the Cloudflare API (the same
+      # source of truth as the SII-91 Terraform output) and patch the
+      # placeholder in-place before wrangler reads the file.
+      - name: Resolve priskurven D1 database id
+        id: d1
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          RESP=$(curl -sf \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database")
+          DB_ID=$(echo "$RESP" | jq -r '.result[] | select(.name=="priskurven") | .uuid')
+          if [ -z "${DB_ID:-}" ] || [ "${DB_ID}" = "null" ]; then
+            echo "::error::priskurven D1 database not found via Cloudflare API. Has SII-91 been applied?"
+            exit 1
+          fi
+          echo "db_id=${DB_ID}" >> "$GITHUB_OUTPUT"
+          sed -i 's|"00000000-0000-0000-0000-000000000000"|"'"${DB_ID}"'"|' cloudflare/wrangler.toml
+
       - name: Apply priskurven D1 migrations
         uses: cloudflare/wrangler-action@v3
         with:
