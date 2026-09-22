@@ -64,8 +64,9 @@ resource "google_cloudfunctions2_function" "priskurven_collect" {
   description = "Daily shelf-price collector for priskurven (M1 — Shelf collector)."
 
   build_config {
-    runtime     = "nodejs22"
-    entry_point = "handler"
+    runtime         = "nodejs22"
+    entry_point     = "handler"
+    service_account = google_service_account.priskurven_fn.email
 
     source {
       storage_source {
