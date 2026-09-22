@@ -66,7 +66,7 @@ resource "google_cloudfunctions2_function" "priskurven_collect" {
   build_config {
     runtime         = "nodejs22"
     entry_point     = "handler"
-    service_account = google_service_account.priskurven_fn.email
+    service_account = google_service_account.priskurven_fn.name
 
     source {
       storage_source {
