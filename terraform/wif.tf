@@ -28,16 +28,21 @@ resource "google_iam_workload_identity_pool_provider" "github_actions" {
   }
 
   # Restrict by repo, not just owner, so a forked repo under the same owner
-  # can't impersonate this SA. Also restrict by ref: only workflows running
-  # against refs/heads/main (i.e. the production-deploy push in
-  # .github/workflows/terraform.yml) may impersonate this SA — a workflow
-  # on any other writable branch or tag in the listed repos cannot.
+  # can't impersonate this SA.
+  #
+  # `apply` is restricted to `refs/heads/main` by the workflow itself
+  # (`if: github.event_name == 'push' && github.ref == 'refs/heads/main'`
+  # in .github/workflows/terraform.yml), so widening the WIF condition to
+  # also accept `refs/pull/<N>/merge` does NOT broaden apply privilege —
+  # it only re-enables PR-triggered `terraform plan` runs that the
+  # production-deploy push needs (plan comments on PRs).
   attribute_condition = <<-EOT
     assertion.repository_owner == "KSiig" &&
     (assertion.repository == "KSiig/homelab" ||
      assertion.repository == "KSiig/tilbudstracker" ||
      assertion.repository == "KSiig/priskurven") &&
-    assertion.ref == "refs/heads/main"
+    (assertion.ref == "refs/heads/main" ||
+     assertion.ref.matches('refs/pull/[0-9]+/merge'))
   EOT
 
   oidc {
