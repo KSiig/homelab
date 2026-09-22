@@ -105,6 +105,7 @@ resource "google_cloudfunctions2_function" "priskurven_collect" {
   depends_on = [
     google_storage_bucket_object.priskurven_function_zip,
     google_service_account_iam_member.priskurven_fn_user,
+    google_secret_manager_secret_iam_member.priskurven_fn_secrets,
   ]
 
   # The function zip is replaced by `KSiig/priskurven/.github/workflows/ci.yml`
