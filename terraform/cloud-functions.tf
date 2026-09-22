@@ -106,4 +106,15 @@ resource "google_cloudfunctions2_function" "priskurven_collect" {
     google_storage_bucket_object.priskurven_function_zip,
     google_service_account_iam_member.priskurven_fn_user,
   ]
+
+  # The function zip is replaced by `KSiig/priskurven/.github/workflows/ci.yml`
+  # (SII-101) on every push to main. Terraform manages the bucket and the
+  # placeholder on first apply; subsequent applies leave the storage_source
+  # alone so CI uploads survive.
+  lifecycle {
+    ignore_changes = [
+      build_config[0].source[0].storage_source[0].bucket,
+      build_config[0].source[0].storage_source[0].object,
+    ]
+  }
 }
