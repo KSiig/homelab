@@ -117,7 +117,7 @@ jobs:
           RESP=$(curl -sf \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database")
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database?name=priskurven")
           DB_ID=$(echo "$RESP" | jq -r '.result[] | select(.name=="priskurven") | .uuid')
           if [ -z "${DB_ID:-}" ] || [ "${DB_ID}" = "null" ]; then
             echo "::error::priskurven D1 database not found via Cloudflare API. Has SII-91 been applied?"
