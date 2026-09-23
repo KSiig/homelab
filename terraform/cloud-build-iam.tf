@@ -33,11 +33,16 @@ resource "google_storage_bucket_iam_member" "priskurven_fn_build_reader" {
 # Gen 2 copies the zip into Google-managed staging buckets named
 # gcf-v2-sources-*, gcf-v2-uploads-*, and run-sources-* before Cloud
 # Build fetches it. objectViewer on the user bucket above is not
-# enough; the fetch step reads the staging bucket. Grant at project
-# level (matches Google's custom-build-SA docs) with an IAM condition
-# so the runtime SA cannot read unrelated buckets (e.g. tfstate).
-# Do not bind IAM on the staging bucket itself: GCP creates it lazily,
-# and google_storage_bucket_iam_member 404s if the bucket is missing.
+# enough; the fetch step reads the staging bucket.
+#
+# Google's custom-build-SA docs grant project-level objectViewer,
+# optionally with an Object-type IAM condition on those prefixes.
+# That binding is in place below. It is not sufficient: Cloud Build's
+# fetch check is bucket-level, so run 35859931654 still 403'd with
+# "Access to bucket gcf-v2-sources-… denied" after the condition
+# applied. The bucket IAM member is what actually unblocks fetch.
+# The staging bucket already exists (created on the failed deploys);
+# google_storage_bucket_iam_member would 404 if it did not.
 resource "google_project_iam_member" "priskurven_fn_gcf_sources" {
   project = var.project_id
   role    = "roles/storage.objectViewer"
@@ -54,4 +59,10 @@ resource "google_project_iam_member" "priskurven_fn_gcf_sources" {
       )
     EOT
   }
+}
+
+resource "google_storage_bucket_iam_member" "priskurven_fn_gcf_sources_reader" {
+  bucket = "gcf-v2-sources-${data.google_project.current.number}-${var.region}"
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${google_service_account.priskurven_fn.email}"
 }
