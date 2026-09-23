@@ -107,6 +107,9 @@ resource "google_cloudfunctions2_function" "priskurven_collect" {
     google_storage_bucket_object.priskurven_function_zip,
     google_service_account_iam_member.priskurven_fn_user,
     google_secret_manager_secret_iam_member.priskurven_fn_secrets,
+    google_project_iam_member.priskurven_fn_build,
+    google_storage_bucket_iam_member.priskurven_fn_build_reader,
+    google_project_iam_member.priskurven_fn_gcf_sources,
   ]
 
   # The function zip is replaced by `KSiig/priskurven/.github/workflows/ci.yml`
