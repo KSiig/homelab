@@ -28,10 +28,24 @@ resource "google_storage_bucket" "priskurven" {
 # Placeholder zip so `google_cloudfunctions2_function.storage_source`
 # resolves a real object at apply time. SII-101 overwrites this object
 # on every green main. The placeholder must never be the deployed handler.
+#
+# SII-112: ignore byte-level changes so a later `terraform apply` does
+# not replace the CI-uploaded object with this placeholder. The
+# function's lifecycle block (below) already ignores bucket/object
+# names; this resource has no such block, so the next plan would
+# otherwise rewrite `function.zip` from `terraform/placeholder/`.
 resource "google_storage_bucket_object" "priskurven_function_zip" {
   name   = "function.zip"
   bucket = google_storage_bucket.priskurven.name
   source = "${path.module}/placeholder/function.zip"
+
+  lifecycle {
+    ignore_changes = [
+      source,
+      content,
+      detect_md5hash,
+    ]
+  }
 }
 
 # Runtime service account for the function. Empty list passed into
