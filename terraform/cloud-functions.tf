@@ -25,6 +25,28 @@ resource "google_storage_bucket" "priskurven" {
   force_destroy               = false
 }
 
+# Cloud Functions Gen 2 uses the project-level Cloud Functions service
+# agent (`service-<PROJECT_NUMBER>@gcf-admin-robot.iam.gserviceaccount.com`)
+# to verify the source object exists and is readable before Cloud Build
+# runs. Without this grant, `gcloud functions deploy --source=gs://...`
+# 401s with "Anonymous caller does not have storage.objects.get access"
+# even when the deployer SA has full storage admin on the bucket.
+#
+# The runtime SA already has objectViewer (see cloud-build-iam.tf), but
+# Cloud Functions does the source-read preflight under the CF service
+# agent, not the runtime SA. Granting objectViewer to the CF-SA fixes
+# it; the CF-SA's own role (`roles/cloudfunctions.serviceAgent`) is
+# provisioned automatically when the Cloud Functions API is enabled,
+# and is not enough on its own to read arbitrary GCS buckets.
+#
+# Reuses data.google_project.current already defined in budget.tf;
+# Terraform disallows duplicate data sources with the same kind+name.
+resource "google_storage_bucket_iam_member" "priskurven_gcf_source_reader" {
+  bucket = google_storage_bucket.priskurven.name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:service-${data.google_project.current.number}@gcf-admin-robot.iam.gserviceaccount.com"
+}
+
 # Placeholder zip so `google_cloudfunctions2_function.storage_source`
 # resolves a real object at apply time. SII-101 overwrites this object
 # on every green main. The placeholder must never be the deployed handler.
