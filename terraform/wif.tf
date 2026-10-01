@@ -69,6 +69,15 @@ locals {
   # var.function_runtime_service_accounts.
   github_actions_roles = [
     "roles/cloudfunctions.developer",
+    # Cloud Functions Gen 2 deploys (`gcloud functions deploy`) call
+    # run.services.setIamPolicy to set the no-public-access binding on
+    # the Cloud Run service. The legacy `cloudfunctions.developer` role
+    # is scoped to Gen 1 and does NOT include any run.* permissions, so
+    # Gen 2 deploys from CI fail with
+    # `Permission 'run.services.setIamPolicy' denied`. `run.admin` adds
+    # the full Cloud Run admin set, including that IAM write. Required
+    # for SII-113's deploy job to succeed post-merge.
+    "roles/run.admin",
     "roles/storage.admin",
     "roles/cloudscheduler.admin",
     "roles/secretmanager.admin",
