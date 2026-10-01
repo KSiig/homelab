@@ -160,3 +160,25 @@ resource "google_cloudfunctions2_function" "priskurven_collect" {
     ]
   }
 }
+
+# Cloud Scheduler job `priskurven-daily` invokes this function with an
+# OIDC token impersonating the runtime SA (`priskurven-fn`). Cloud Run
+# then checks whether that principal has `roles/run.invoker` on the
+# service. With `--no-allow-unauthenticated` (SII-113 contract) the
+# function ships with no invokers at all, and SII-91's Terraform did
+# not grant the runtime SA invoker — so the Scheduler's first attempt
+# (12:36 UTC on 2026-10-01) returned 403:
+#
+#   The request was not authenticated. Either allow unauthenticated
+#   invocations or set the proper Authorization header. The IAM
+#   principal lacks {run.routes.invoke} permission.
+#
+# Grant invoker to the runtime SA so the OIDC token is accepted.
+# Without this binding, every scheduled run 403s with the message above.
+resource "google_cloud_run_service_iam_member" "priskurven_collect_invoker" {
+  location = google_cloudfunctions2_function.priskurven_collect.location
+  project  = google_cloudfunctions2_function.priskurven_collect.project
+  service  = google_cloudfunctions2_function.priskurven_collect.name
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.priskurven_fn.email}"
+}
