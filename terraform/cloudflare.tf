@@ -1,13 +1,10 @@
 provider "cloudflare" {}
 
-# Look up the siig.tech zone id from the zone name. The zone is
-# managed in this Cloudflare account (`var.cloudflare_account_id`);
-# this data source is the canonical way to reference the zone without
-# hardcoding the id (which can drift across Cloudflare dashboard
-# operations).
+# Look up the siig.tech zone id from the zone name. Cloudflare zone
+# names are globally unique, so the data source only needs `name` (no
+# `account_id`; v5 provider removed that argument).
 data "cloudflare_zone" "siig_tech" {
-  account_id = var.cloudflare_account_id
-  name       = "siig.tech"
+  name = "siig.tech"
 }
 
 # Register priskurven.siig.tech as a custom domain on the
@@ -48,7 +45,7 @@ output "priskurven_d1_database_id" {
   value       = cloudflare_d1_database.priskurven.id
 }
 
-resource "cloudflare_worker_domain" "priskurven_history" {
+resource "cloudflare_workers_custom_domain" "priskurven_history" {
   account_id = var.cloudflare_account_id
   zone_id    = data.cloudflare_zone.siig_tech.id
   hostname   = "priskurven.siig.tech"
