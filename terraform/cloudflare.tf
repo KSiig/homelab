@@ -1,10 +1,12 @@
 provider "cloudflare" {}
 
-# Look up the siig.tech zone id from the zone name. Cloudflare zone
-# names are globally unique, so the data source only needs `name` (no
-# `account_id`; v5 provider removed that argument).
+# Look up the siig.tech zone id from the zone name. In provider v5,
+# the data source uses a `filter` nested attribute instead of `name`
+# directly (the v4 `name` argument became read-only).
 data "cloudflare_zone" "siig_tech" {
-  name = "siig.tech"
+  filter = {
+    name = "siig.tech"
+  }
 }
 
 # Register priskurven.siig.tech as a custom domain on the
