@@ -38,8 +38,9 @@ resource "google_storage_bucket" "priskurven" {
 # it; the CF-SA's own role (`roles/cloudfunctions.serviceAgent`) is
 # provisioned automatically when the Cloud Functions API is enabled,
 # and is not enough on its own to read arbitrary GCS buckets.
-data "google_project" "current" {}
-
+#
+# Reuses data.google_project.current already defined in budget.tf;
+# Terraform disallows duplicate data sources with the same kind+name.
 resource "google_storage_bucket_iam_member" "priskurven_gcf_source_reader" {
   bucket = google_storage_bucket.priskurven.name
   role   = "roles/storage.objectViewer"
