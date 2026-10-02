@@ -153,10 +153,22 @@ resource "google_cloudfunctions2_function" "priskurven_collect" {
   # (SII-101) on every push to main. Terraform manages the bucket and the
   # placeholder on first apply; subsequent applies leave the storage_source
   # alone so CI uploads survive.
+  #
+  # The function's `secret_environment_variables` are also written by CI in
+  # `KSiig/priskurven` via `gcloud functions deploy --set-secrets` (SII-115
+  # lands BILKATOGO_*, NETTO_*, and FOTEX_*). `--set-secrets` replaces the
+  # whole secret set, so the live function can hold names this Terraform
+  # never lists (CLOUDFLARE_API_TOKEN is the only one bound here on
+  # purpose — the function must start when Salling keys are absent). Without
+  # this ignore, the next `terraform apply` would delete CI-mounted secret
+  # environment variables and deploy a new revision from this file's
+  # one-entry list. SII-117 keeps Terraform and CI as joint writers of the
+  # secret set without fighting each other.
   lifecycle {
     ignore_changes = [
       build_config[0].source[0].storage_source[0].bucket,
       build_config[0].source[0].storage_source[0].object,
+      service_config[0].secret_environment_variables,
     ]
   }
 }
