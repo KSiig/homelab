@@ -53,3 +53,15 @@ resource "cloudflare_workers_custom_domain" "priskurven_history" {
   hostname   = "priskurven.siig.tech"
   service    = "priskurven"
 }
+
+# Register linear.siig.tech as a custom domain on the
+# `linear-planner` Cloudflare Pages project. The project
+# itself is created by `wrangler pages deploy` from the
+# KSiig/linear-planner deploy workflow (SII-119), not by
+# this Terraform — `terraform apply` will fail with
+# "project not found" until SII-119 has merged and run.
+resource "cloudflare_pages_domain" "linear_planner" {
+  account_id   = var.cloudflare_account_id
+  project_name = "linear-planner"
+  name         = "linear.siig.tech"
+}
