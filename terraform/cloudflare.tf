@@ -60,8 +60,28 @@ resource "cloudflare_workers_custom_domain" "priskurven_history" {
 # KSiig/linear-planner deploy workflow (SII-119), not by
 # this Terraform — `terraform apply` will fail with
 # "project not found" until SII-119 has merged and run.
+#
+# NOTE: `cloudflare_pages_domain` (v5) binds the hostname to
+# the Pages project but does NOT create a DNS record in the
+# zone. Compare with `cloudflare_workers_custom_domain`
+# above, which DOES create the CNAME. SII-120 missed the
+# companion CNAME; this PR (SII-120a) adds it.
 resource "cloudflare_pages_domain" "linear_planner" {
   account_id   = var.cloudflare_account_id
   project_name = "linear-planner"
   name         = "linear.siig.tech"
+}
+
+# DNS record for the custom domain above. CNAME
+# `linear.siig.tech` -> `linear-planner.pages.dev`, proxied
+# so Cloudflare's edge terminates SSL and routes the request
+# to the Pages project that the resource above just registered.
+resource "cloudflare_dns_record" "linear_siig_tech" {
+  zone_id = data.cloudflare_zone.siig_tech.id
+  name    = "linear.siig.tech"
+  type    = "CNAME"
+  content = "linear-planner.pages.dev"
+  proxied = true
+  ttl     = 1
+  comment = "SII-120a: companion CNAME for cloudflare_pages_domain.linear_planner. SII-120 missed this record; Pages registers the hostname but does not create the CNAME itself (unlike cloudflare_workers_custom_domain)."
 }
