@@ -85,3 +85,7 @@ resource "cloudflare_dns_record" "linear_siig_tech" {
   ttl     = 1
   comment = "SII-120a: companion CNAME for cloudflare_pages_domain.linear_planner. SII-120 missed this record; Pages registers the hostname but does not create the CNAME itself (unlike cloudflare_workers_custom_domain)."
 }
+
+# Note: re-apply of SII-120a's CNAME after Cloudflare token scope was extended
+# with Zone/DNS/Edit. The original PR (#32) merged but token lacked DNS:Edit, so
+# the apply returned 403. Token scope fixed, this push re-runs the workflow.
