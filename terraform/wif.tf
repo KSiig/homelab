@@ -1,7 +1,8 @@
 # Workload Identity Federation for GitHub Actions.
 #
-# Lets GitHub Actions workflows in KSiig/homelab and KSiig/tilbudstracker
-# authenticate to GCP without a long-lived service account key.
+# Lets GitHub Actions workflows in KSiig/homelab and KSiig/priskurven
+# authenticate to GCP without a long-lived service account key. (KSiig/tilbudstracker
+# was removed on 2026-10-06 when the project was decommissioned.)
 
 resource "google_project_service" "iam_credentials" {
   service            = "iamcredentials.googleapis.com"
@@ -39,7 +40,6 @@ resource "google_iam_workload_identity_pool_provider" "github_actions" {
   attribute_condition = <<-EOT
     assertion.repository_owner == "KSiig" &&
     (assertion.repository == "KSiig/homelab" ||
-     assertion.repository == "KSiig/tilbudstracker" ||
      assertion.repository == "KSiig/priskurven") &&
     (assertion.ref == "refs/heads/main" ||
      assertion.ref.matches('refs/pull/[0-9]+/merge'))
@@ -135,7 +135,6 @@ resource "google_service_account_iam_binding" "github_actions_workload_identity"
 
   members = [
     "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_actions.name}/attribute.repository/KSiig/homelab",
-    "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_actions.name}/attribute.repository/KSiig/tilbudstracker",
     "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github_actions.name}/attribute.repository/KSiig/priskurven",
   ]
 }
