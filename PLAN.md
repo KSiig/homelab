@@ -43,11 +43,11 @@ Personal infrastructure running on GCP + Cloudflare free tiers.
 
 | Service | Free allowance | Estimated usage |
 |---------|---------------|-----------------|
-| GCP Cloud Functions | 2M invocations, 400K GB-s/month | Tilbudstracker: ~30 invocations/month. Agentic jobs: ~100–500/month |
-| GCP Cloud Scheduler | 3 jobs/account | 1 for tilbudstracker, 2 for future agents |
+| GCP Cloud Functions | 2M invocations, 400K GB-s/month | Priskurven: ~30 invocations/month. Agentic jobs: ~100–500/month |
+| GCP Cloud Scheduler | 3 jobs/account | 1 for priskurven, 2 for future agents |
 | Cloudflare Pages | Unlimited requests, 500 builds/month | 1–3 web apps |
 | Cloudflare Workers | 100K requests/day | API backends for web apps |
-| Cloudflare D1 | 5 GB, 5M reads/day, 100K writes/day | Tilbudstracker DB + future project DBs |
+| Cloudflare D1 | 5 GB, 5M reads/day, 100K writes/day | Priskurven DB + future project DBs |
 
 ## Infrastructure as Code
 
@@ -64,7 +64,7 @@ homelab/
     wrangler.toml            # workers + pages config
     d1-migrations/           # D1 schema migrations
   projects/
-    tilbudstracker/          # see below
+    priskurven/              # active; see priskurven project notes
     agent-template/          # template for new agentic cron projects
 ```
 
@@ -100,90 +100,15 @@ database_name = "homelab"
 database_id = "<created-on-first-deploy>"
 ```
 
-## Project: tilbudstracker
+## Project: tilbudstracker (decommissioned 2026-10-06)
 
-Grocery offer tracker — scrapes Danish offers from etilbudsavis.dk via the Tjek API, stores in SQLite, web UI for browsing results.
+Grocery offer tracker — scraped Danish offers from etilbudsavis.dk via the Tjek API, stored in Cloudflare D1.
 
-Source: https://github.com/KSiig/tilbudstracker
+Source: https://github.com/KSiig/tilbudstracker (archived; not deployed)
 
-### Current state
+The project ran as a Gen 2 Cloud Function (`tilbudstracker-scrape`) in `europe-west1`, invoked by two Cloud Scheduler jobs (`tilbudstracker-daily` daily 06:00, `tilbudstracker-weekly-normalize` Sun 06:30) and writing to the `homelab` D1 database. Decommissioning removed the function, both schedulers, the runtime/scheduler/ops service accounts, the `tjek-api-key` and `minimax-api-key` secrets, three Cloud Monitoring alert policies, the `tilbudstracker ops` notification channel, and the `homelab` D1 database (after a SQL dump to `~/homelab-d1-backup-2026-10-06.sql`). The `cloudflare-api-token` secret was kept because priskurven now uses it.
 
-- TypeScript/Node.js scraper that writes to SQLite (`data/tilbud.db`)
-- Tables: `stores`, `catalogs`, `offers`
-- Skips previously-scraped catalogs (idempotent)
-- Web UI: not yet built
-- Docker image exists but was targeting K8s CronJob
-
-### Deployment plan
-
-**Scraper cron → GCP Cloud Function**
-
-1. Refactor the scraper entry point to export a Cloud Functions handler:
-   ```typescript
-   import { HttpFunction } from "@google-cloud/functions-framework";
-   export const scrape: HttpFunction = async (req, res) => {
-     // existing scrape logic, but write to D1 instead of local SQLite
-     res.status(200).send("done");
-   };
-   ```
-2. Replace direct SQLite writes with D1 REST API calls (Cloudflare provides an HTTP API for D1 — the function POSTs SQL statements and gets results back)
-3. Deploy via Terraform as a Gen 2 Cloud Function (Node.js 22 runtime, 256 MB memory, 5 min timeout)
-4. Cloud Scheduler triggers it daily (or twice daily) via HTTP
-
-**Database → Cloudflare D1**
-
-1. Migrate the existing SQLite schema to D1:
-   ```sql
-   -- d1-migrations/0001_initial.sql
-   CREATE TABLE stores (
-     id TEXT PRIMARY KEY,
-     name TEXT NOT NULL,
-     -- existing columns from tilbudstracker
-   );
-   CREATE TABLE catalogs (...);
-   CREATE TABLE offers (...);
-   ```
-2. D1 is SQLite under the hood — the existing schema translates directly
-3. Both the GCP function (via REST API) and the Cloudflare Worker (via native binding) access the same database
-
-**Web UI → Cloudflare Pages + Workers**
-
-1. Build a simple web app (likely SvelteKit, Astro, or plain HTML + Workers API):
-   - Browse current offers by store/category
-   - Search by product name
-   - Price trend charts per product
-2. Workers backend queries D1 directly via native binding (no REST API overhead)
-3. Deploy via `wrangler pages deploy`
-
-### Data flow
-
-```
-Cloud Scheduler (daily 06:00 UTC)
-  │
-  ▼
-Cloud Function (scrape)
-  │  fetch offers from Tjek API
-  │  write to D1 via REST API
-  ▼
-Cloudflare D1 (homelab database)
-  ▲
-  │  native D1 binding
-  │
-Cloudflare Worker (API)
-  ▲
-  │
-Cloudflare Pages (web UI)
-```
-
-### Migration steps
-
-1. Set up GCP project + Cloudflare account (if not already)
-2. Create D1 database, run initial migration
-3. Seed D1 with existing data from `data/tilbud.db` (one-time import via `wrangler d1 execute`)
-4. Refactor scraper to use D1 REST API instead of local SQLite
-5. Deploy scraper as Cloud Function + Scheduler trigger
-6. Build and deploy web UI on Pages
-7. Verify cron runs, data flows through, UI renders
+The workload was superseded by `KSiig/priskurven` (M1 — Shelf collector), which uses a separate D1 database (`cloudflare/d1-migrations/priskurven/`) and a new Cloud Function (`priskurven-collect`) deployed via the homelab Terraform module.
 
 ## Project template: agentic cronjobs
 
@@ -265,7 +190,7 @@ Two reusable GitHub Actions workflows live at `.github/workflows/`:
 ### Calling the Cloudflare workflow from a consumer repo
 
 ```yaml
-# From KSiig/tilbudstracker — .github/workflows/cloudflare-web.yml
+# From a consumer repo — .github/workflows/cloudflare-web.yml
 name: Deploy Cloudflare Pages
 on:
   push:
@@ -290,12 +215,11 @@ Secrets the caller must pass: `cloudflare_api_token` — map your repo's Cloudfl
 
 ## Setup checklist
 
-- [ ] Create GCP project with billing account + $0 budget alert
-- [ ] Enable Cloud Functions, Cloud Scheduler, Secret Manager APIs
-- [ ] Create Cloudflare account
-- [ ] Create D1 database (`wrangler d1 create homelab`)
-- [ ] Set up Terraform backend (GCS bucket or Terraform Cloud free tier)
-- [ ] Set up GitHub Actions for both platforms
-- [ ] Migrate tilbudstracker scraper to Cloud Functions + D1
-- [ ] Build tilbudstracker web UI on Cloudflare Pages
-- [ ] Deploy first agentic cronjob
+- [x] Create GCP project with billing account + $0 budget alert
+- [x] Enable Cloud Functions, Cloud Scheduler, Secret Manager APIs
+- [x] Create Cloudflare account
+- [x] Set up Terraform backend (GCS bucket or Terraform Cloud free tier)
+- [x] Set up GitHub Actions for both platforms
+- [x] Migrate scraper to Cloud Functions + D1
+- [x] Deploy priskurven (first agentic cronjob)
+- [ ] Build tilbudstracker web UI on Cloudflare Pages — **N/A: project decommissioned 2026-10-06**
