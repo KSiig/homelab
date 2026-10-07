@@ -25,12 +25,6 @@ data "cloudflare_zone" "siig_tech" {
 #   * Account → Workers Scripts:Edit  (register hostname with Worker)
 #   * Zone    → Zone:Read            (resolve zone id from name)
 
-resource "cloudflare_d1_database" "homelab" {
-  account_id       = var.cloudflare_account_id
-  name             = "homelab"
-  read_replication = { mode = "disabled" }
-}
-
 # Priskurven D1 database (M1 — Shelf collector).
 # Read by SII-99 (history Worker) and SII-109 (homelab CI that applies
 # D1 migrations remotely) via terraform output `priskurven_d1_database_id`.
