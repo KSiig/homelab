@@ -48,6 +48,13 @@ resource "cloudflare_workers_custom_domain" "priskurven_history" {
   service    = "priskurven"
 }
 
+resource "cloudflare_workers_custom_domain" "priskurven_backoffice" {
+  account_id = var.cloudflare_account_id
+  zone_id    = data.cloudflare_zone.siig_tech.id
+  hostname   = "backoffice.priskurven.siig.tech"
+  service    = "priskurven-backoffice"
+}
+
 # Register linear.siig.tech as a custom domain on the
 # `linear-planner` Cloudflare Pages project. The project
 # itself is created by `wrangler pages deploy` from the
